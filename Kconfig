@@ -1,0 +1,30 @@
+mainmenu "ESP32 Zephyr Scaffold Configuration"
+source "Kconfig.zephyr"
+
+menu "Application Options"
+
+config WIFI_SSID
+	string "WiFi SSID"
+	default "NO_SSID_SET"
+	help
+	  Determines which WiFi SSID to connect to.
+
+config WIFI_PASSPHRASE
+	string "WiFi passphrase"
+	default "NO_PASSPHRASE_SET"
+	help
+	  The passphrase for the WiFi SSID.
+
+config WIFI_TIMEOUT_MS
+    int "WiFi connection timeout (ms)"
+    default 30000
+    help
+      The timeout in milliseconds for connecting to the WiFi network.
+
+config DHCP_TIMEOUT_MS
+    int "DHCP timeout (ms)"
+    default 30000
+    help
+      The timeout in milliseconds for obtaining an IP address via DHCP.
+
+endmenu
