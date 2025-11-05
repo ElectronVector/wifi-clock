@@ -129,7 +129,10 @@ Then you can connect to it with minicom or similar.
 ### Networking in native_sim
 In order to use networking with the native sim build, before running the application use the network setup script ot configure the host network interface:
 ```shell
-sudo deps/tools/net-tools/net-setup.sh --config nat.conf start
+cd deps/tools/net-tools
+```
+```shell
+sudo net-setup.sh --config nat.conf start
 ```
 
 This runs the `net-setup.sh` script from the `net-tools` directory with the `nat.conf` configuration file.
@@ -164,7 +167,9 @@ dns: All results received
 ```
 
 When finished running the application, then run:
-
+```shell
+cd deps/tools/net-tools
+```
 ```shell
 sudo deps/tools/net-tools/net-setup.sh --config nat.conf stop
 ```
