@@ -12,8 +12,10 @@
 LOG_MODULE_REGISTER(wifi, CONFIG_LOG_DEFAULT_LEVEL);
 
 #ifdef CONFIG_WIFI
+K_EVENT_DEFINE(wifi_events);
 
 static struct net_mgmt_event_callback wifi_cb;
+static struct net_mgmt_event_callback wifi_disconnect_cb;
 static atomic_t wifi_connected = ATOMIC_INIT(0);
 
 static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
@@ -24,12 +26,25 @@ static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
         struct wifi_status *status = (struct wifi_status *)cb->info;
         if (status && status->status == 0) {
             atomic_set(&wifi_connected, 1);
+            k_event_set(&wifi_events, WIFI_EVENT_CONNECTED);
             LOG_INF("Wi-Fi connected event received");
         } else {
             LOG_ERR("Wi-Fi connect failed, status: %d", status ? status->status : -1);
         }
+    } else if (mgmt_event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
+        atomic_set(&wifi_connected, 0);
+        k_event_set(&wifi_events, WIFI_EVENT_DISCONNECTED);
+        LOG_INF("Wi-Fi disconnected event received");
     }
 }
+#else
+struct k_event wifi_events;
+static int wifi_events_init(void)
+{
+	k_event_init(&wifi_events);
+	return 0;
+}
+SYS_INIT(wifi_events_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 #endif
 
 int wifi_connect()
@@ -53,9 +68,12 @@ int wifi_connect()
         .mfp = WIFI_MFP_OPTIONAL,
     };
 
-    // Register Wi-Fi event callback
+    // Register Wi-Fi event callbacks
     net_mgmt_init_event_callback(&wifi_cb, wifi_mgmt_event_handler, NET_EVENT_WIFI_CONNECT_RESULT);
     net_mgmt_add_event_callback(&wifi_cb);
+
+    net_mgmt_init_event_callback(&wifi_disconnect_cb, wifi_mgmt_event_handler, NET_EVENT_WIFI_DISCONNECT_RESULT);
+    net_mgmt_add_event_callback(&wifi_disconnect_cb);
 
     int ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &wifi_params, sizeof(wifi_params));
     if (ret) {
@@ -115,6 +133,7 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
         ret = wifi_connect();
         if (ret == 0) {
             LOG_INF("Wi-Fi connected successfully");
+            k_event_set(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
             break;
         }
 

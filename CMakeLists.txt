@@ -9,4 +9,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(esp32_zephyr_scaffold)
 
 target_include_directories(app PRIVATE src)
-target_sources(app PRIVATE src/main.c src/wifi.c)
+target_sources(app PRIVATE src/main.c src/wifi.c src/led.c)
