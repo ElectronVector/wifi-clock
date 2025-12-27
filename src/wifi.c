@@ -7,6 +7,7 @@
 #include "zephyr/net/net_mgmt.h"
 #include "zephyr/net/wifi_mgmt.h"
 #include "zephyr/sys/atomic.h"
+#include "zephyr/kernel.h"
 
 LOG_MODULE_REGISTER(wifi, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -103,3 +104,23 @@ int wifi_connect()
 
     return 0;
 }
+
+static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
+{
+    int ret;
+
+    LOG_INF("Wi-Fi thread started");
+
+    while (1) {
+        ret = wifi_connect();
+        if (ret == 0) {
+            LOG_INF("Wi-Fi connected successfully");
+            break;
+        }
+
+        LOG_ERR("Wi-Fi connection failed, retrying in 5 seconds...");
+        k_sleep(K_SECONDS(5));
+    }
+}
+
+K_THREAD_DEFINE(wifi_thread, 1024, wifi_thread_fn, NULL, NULL, NULL, 7, 0, 0);

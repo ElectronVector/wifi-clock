@@ -1,9 +1,3 @@
-/*
- * Copyright (c) 2012-2014 Wind River Systems, Inc.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include <stdio.h>
 
 #include "wifi.h"
@@ -24,13 +18,6 @@ int main(void)
 	printf("Sup?? Hello World!! %s\n", CONFIG_BOARD);
 
 	bool led_state = true;
-
-	LOG_INF("Connecting to WiFi...");
-	if (wifi_connect() == 0)
-	{
-		LOG_INF("Successfully connected to WiFi");
-		LOG_INF("Use the 'net' shell command to test the connection");
-	}
 
 	/* Check if LED device is ready */
 	if (!gpio_is_ready_dt(&led)) {
