@@ -10,17 +10,30 @@ LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define NTP_SERVER "pool.ntp.org"
 #define NTP_TIMEOUT 3000
+#define NTP_RETRY_COUNT 10
 
 static void fetch_and_log_time(void)
 {
 	struct sntp_time ts;
 	int res;
+	int retries = 0;
 
 	LOG_INF("Fetching time from NTP server: %s", NTP_SERVER);
 
-	res = sntp_simple(NTP_SERVER, NTP_TIMEOUT, &ts);
+	do {
+		res = sntp_simple(NTP_SERVER, NTP_TIMEOUT, &ts);
+		if (res >= 0) {
+			break;
+		}
+		retries++;
+		LOG_WRN("SNTP query failed (attempt %d/%d): %d", retries, NTP_RETRY_COUNT, res);
+		if (retries < NTP_RETRY_COUNT) {
+			k_msleep(1000); // Wait a bit before retrying
+		}
+	} while (retries < NTP_RETRY_COUNT);
+
 	if (res < 0) {
-		LOG_ERR("SNTP query failed: %d", res);
+		LOG_ERR("SNTP query failed after %d retries: %d", NTP_RETRY_COUNT, res);
 		return;
 	}
 
@@ -58,9 +71,7 @@ int main(void)
 
 		if (events & WIFI_EVENT_IP_ACQUIRED) {
 			LOG_INF("Main thread: IP address acquired");
-			LOG_INF("fetching time...");
 			fetch_and_log_time();
-			LOG_INF("...time fetch done");
 			k_event_clear(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
 		}
 
