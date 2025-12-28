@@ -8,6 +8,13 @@
 
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
+static void timer_handler(struct k_timer *dummy)
+{
+	LOG_INF("Timer tick");
+}
+
+K_TIMER_DEFINE(tick_timer, timer_handler, NULL);
+
 #define NTP_SERVER "pool.ntp.org"
 #define NTP_TIMEOUT 3000
 #define NTP_RETRY_COUNT 10
@@ -53,6 +60,8 @@ static void fetch_and_log_time(void)
 int main(void)
 {
 	printf("Sup?? Hello World!! %s\n", CONFIG_BOARD);
+
+	k_timer_start(&tick_timer, K_SECONDS(10), K_SECONDS(10));
 
 	while (1) {
 		uint32_t events = k_event_wait(&wifi_events, WIFI_EVENT_CONNECTED | WIFI_EVENT_DISCONNECTED |
