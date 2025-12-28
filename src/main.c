@@ -58,12 +58,14 @@ int main(void)
 
 		if (events & WIFI_EVENT_IP_ACQUIRED) {
 			LOG_INF("Main thread: IP address acquired");
+			LOG_INF("fetching time...");
+			fetch_and_log_time();
+			LOG_INF("...time fetch done");
 			k_event_clear(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
 		}
 
 		if (events & WIFI_EVENT_DNS_CONFIGURED) {
 			LOG_INF("Main thread: DNS configured");
-			fetch_and_log_time();
 			k_event_clear(&wifi_events, WIFI_EVENT_DNS_CONFIGURED);
 		}
 	}
