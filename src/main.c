@@ -10,7 +10,23 @@ LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
 static void timer_handler(struct k_timer *dummy)
 {
-	LOG_INF("Timer tick");
+	struct timespec ts;
+	int err = clock_gettime(CLOCK_REALTIME, &ts);
+	if (!err) {
+		struct tm *tm_struct;
+		char time_str[64];
+		time_t now = ts.tv_sec;
+
+		tm_struct = gmtime(&now);
+		if (tm_struct) {
+			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S UTC", tm_struct);
+			LOG_INF("Timer tick: %s", time_str);
+		} else {
+			LOG_ERR("Failed to convert time");
+		}
+	} else {
+		LOG_ERR("Failed to get time: %d", err);
+	}
 }
 
 K_TIMER_DEFINE(tick_timer, timer_handler, NULL);
@@ -55,6 +71,11 @@ static void fetch_and_log_time(void)
 	} else {
 		LOG_ERR("Failed to convert time");
 	}
+
+	struct timespec tspec;
+	tspec.tv_sec = now;  // Unix timestamp from SNTP
+	tspec.tv_nsec = 0;
+	clock_settime(CLOCK_REALTIME, &tspec);
 }
 
 int main(void)
