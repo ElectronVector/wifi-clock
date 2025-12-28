@@ -47,6 +47,18 @@ static int wifi_events_init(void)
 SYS_INIT(wifi_events_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 #endif
 
+static struct net_mgmt_event_callback dns_cb;
+
+static void dns_mgmt_event_handler(struct net_mgmt_event_callback *cb,
+                                   uint32_t mgmt_event,
+                                   struct net_if *iface)
+{
+    if (mgmt_event == NET_EVENT_DNS_SERVER_ADD) {
+        LOG_INF("DNS server added event received");
+        k_event_set(&wifi_events, WIFI_EVENT_DNS_CONFIGURED);
+    }
+}
+
 int wifi_connect()
 {
     LOG_INF("Connecting to network: %s", CONFIG_WIFI_SSID);
@@ -74,7 +86,12 @@ int wifi_connect()
 
     net_mgmt_init_event_callback(&wifi_disconnect_cb, wifi_mgmt_event_handler, NET_EVENT_WIFI_DISCONNECT_RESULT);
     net_mgmt_add_event_callback(&wifi_disconnect_cb);
+#endif
 
+    net_mgmt_init_event_callback(&dns_cb, dns_mgmt_event_handler, NET_EVENT_DNS_SERVER_ADD);
+    net_mgmt_add_event_callback(&dns_cb);
+
+#ifdef CONFIG_WIFI
     int ret = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &wifi_params, sizeof(wifi_params));
     if (ret) {
         LOG_ERR("Wi-Fi connect request failed: %d", ret);

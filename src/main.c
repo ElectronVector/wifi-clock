@@ -42,7 +42,8 @@ int main(void)
 	printf("Sup?? Hello World!! %s\n", CONFIG_BOARD);
 
 	while (1) {
-		uint32_t events = k_event_wait(&wifi_events, WIFI_EVENT_CONNECTED | WIFI_EVENT_DISCONNECTED | WIFI_EVENT_IP_ACQUIRED,
+		uint32_t events = k_event_wait(&wifi_events, WIFI_EVENT_CONNECTED | WIFI_EVENT_DISCONNECTED |
+							      WIFI_EVENT_IP_ACQUIRED | WIFI_EVENT_DNS_CONFIGURED,
 					      false, K_FOREVER);
 
 		if (events & WIFI_EVENT_CONNECTED) {
@@ -57,8 +58,13 @@ int main(void)
 
 		if (events & WIFI_EVENT_IP_ACQUIRED) {
 			LOG_INF("Main thread: IP address acquired");
-			fetch_and_log_time();
 			k_event_clear(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
+		}
+
+		if (events & WIFI_EVENT_DNS_CONFIGURED) {
+			LOG_INF("Main thread: DNS configured");
+			fetch_and_log_time();
+			k_event_clear(&wifi_events, WIFI_EVENT_DNS_CONFIGURED);
 		}
 	}
 
