@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "wifi.h"
+#include "network.h"
 #include "zephyr/kernel.h"
 #include "zephyr/logging/log.h"
 #include "zephyr/net/sntp.h"
@@ -85,29 +85,18 @@ int main(void)
 	k_timer_start(&tick_timer, K_SECONDS(10), K_SECONDS(10));
 
 	while (1) {
-		uint32_t events = k_event_wait(&wifi_events, WIFI_EVENT_CONNECTED | WIFI_EVENT_DISCONNECTED |
-							      WIFI_EVENT_IP_ACQUIRED | WIFI_EVENT_DNS_CONFIGURED,
+		uint32_t events = k_event_wait(&network_events, NETWORK_EVENT_CONNECTED | NETWORK_EVENT_DISCONNECTED,
 					      false, K_FOREVER);
 
-		if (events & WIFI_EVENT_CONNECTED) {
-			LOG_INF("Main thread: Wi-Fi connected");
-			k_event_clear(&wifi_events, WIFI_EVENT_CONNECTED);
-		}
-
-		if (events & WIFI_EVENT_DISCONNECTED) {
-			LOG_INF("Main thread: Wi-Fi disconnected");
-			k_event_clear(&wifi_events, WIFI_EVENT_DISCONNECTED);
-		}
-
-		if (events & WIFI_EVENT_IP_ACQUIRED) {
-			LOG_INF("Main thread: IP address acquired");
+		if (events & NETWORK_EVENT_CONNECTED) {
+			LOG_INF("Main thread: Network connected");
 			fetch_and_log_time();
-			k_event_clear(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
+			k_event_clear(&network_events, NETWORK_EVENT_CONNECTED);
 		}
 
-		if (events & WIFI_EVENT_DNS_CONFIGURED) {
-			LOG_INF("Main thread: DNS configured");
-			k_event_clear(&wifi_events, WIFI_EVENT_DNS_CONFIGURED);
+		if (events & NETWORK_EVENT_DISCONNECTED) {
+			LOG_INF("Main thread: Network disconnected");
+			k_event_clear(&network_events, NETWORK_EVENT_DISCONNECTED);
 		}
 	}
 
