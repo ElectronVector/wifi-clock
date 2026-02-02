@@ -1,6 +1,7 @@
 #ifndef NETWORK_TIME_H
 #define NETWORK_TIME_H
+#include "stdint.h"
 
-void network_time_fetch_and_set(void);
+uint32_t network_time_get_and_set(void);
 
 #endif // NETWORK_TIME_H

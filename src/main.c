@@ -20,7 +20,7 @@ static void timer_handler(struct k_timer *dummy)
 		tm_struct = gmtime(&now);
 		if (tm_struct) {
 			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_struct);
-			LOG_INF("Timer tick: %s.%03d UTC", time_str, (int)(ts.tv_nsec / 1000000));
+			LOG_INF("%s.%03d UTC", time_str, (int)(ts.tv_nsec / 1000000));
 		} else {
 			LOG_ERR("Failed to convert time");
 		}
@@ -29,13 +29,11 @@ static void timer_handler(struct k_timer *dummy)
 	}
 }
 
-K_TIMER_DEFINE(tick_timer, timer_handler, NULL);
+K_TIMER_DEFINE(one_second_timer, timer_handler, NULL);
 
 int main(void)
 {
 	printf("Sup?? Hello World!! %s\n", CONFIG_BOARD);
-
-	k_timer_start(&tick_timer, K_SECONDS(10), K_SECONDS(10));
 
 	while (1) {
 		uint32_t events = k_event_wait(&network_events, NETWORK_EVENT_CONNECTED | NETWORK_EVENT_DISCONNECTED,
@@ -43,7 +41,8 @@ int main(void)
 
 		if (events & NETWORK_EVENT_CONNECTED) {
 			LOG_INF("Main thread: Network connected");
-			network_time_fetch_and_set();
+			uint32_t offset_ms = network_time_get_and_set();
+			k_timer_start(&one_second_timer, K_MSEC(offset_ms), K_SECONDS(1));
 			k_event_clear(&network_events, NETWORK_EVENT_CONNECTED);
 		}
 
