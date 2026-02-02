@@ -19,8 +19,8 @@ static void timer_handler(struct k_timer *dummy)
 
 		tm_struct = gmtime(&now);
 		if (tm_struct) {
-			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S UTC", tm_struct);
-			LOG_INF("Timer tick: %s", time_str);
+			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_struct);
+			LOG_INF("Timer tick: %s.%03d UTC", time_str, (int)(ts.tv_nsec / 1000000));
 		} else {
 			LOG_ERR("Failed to convert time");
 		}
