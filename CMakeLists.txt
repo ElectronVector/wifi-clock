@@ -13,4 +13,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(wifi-clock)
 
 target_include_directories(app PRIVATE src)
-target_sources(app PRIVATE src/main.c src/network.c src/wifi.c src/led.c)
+target_sources(app PRIVATE src/main.c src/network.c src/wifi.c src/led.c src/network_time.c)
