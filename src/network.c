@@ -29,4 +29,4 @@ static void network_event_forwarder(void *arg1, void *arg2, void *arg3)
 	}
 }
 
-K_THREAD_DEFINE(network_event_thread, 1024, network_event_forwarder, NULL, NULL, NULL, 7, 0, 0);
+K_THREAD_DEFINE(network_event_thread, 2048, network_event_forwarder, NULL, NULL, NULL, 7, 0, 0);

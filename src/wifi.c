@@ -224,4 +224,4 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 	}
 }
 
-K_THREAD_DEFINE(wifi_thread, 1024, wifi_thread_fn, NULL, NULL, NULL, 7, 0, 0);
+K_THREAD_DEFINE(wifi_thread, 2048, wifi_thread_fn, NULL, NULL, NULL, 7, 0, 0);

@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.20.0)
 # Print the value of the ZEPHYR_BASE environment variable during configure
 message(STATUS "ZEPHYR_BASE environment variable: $ENV{ZEPHYR_BASE}")
 
+set(EXTRA_CONF_FILE "private/wifi-network.conf")
+
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(esp32_zephyr_scaffold)
 
