@@ -179,10 +179,9 @@ to remove the network configuration.
 ## Running on ESP32
 
 Configure your WiFi network by setting the `CONFIG_WIFI_SSID` and `CONFIG_WIFI_PASSWORD` Kconfig variables.
-For security, this can be done in an overlay config file and added to the build with:
-```
-west <commands> -- -DOVERLAY_CONFIG=overlay-wifi-file.conf
-```
+For security, this can be done in an overlay config file named `private/wifi-network.conf`).
+If this file exists, it will be automatically added to the build.
+In this repository, the `private` directory is excluded from version control.
 
 ### Serial console
 
