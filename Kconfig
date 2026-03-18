@@ -17,7 +17,7 @@ config WIFI_PASSPHRASE
 
 config WIFI_TIMEOUT_MS
     int "WiFi connection timeout (ms)"
-    default 30000
+    default 60000
     help
       The timeout in milliseconds for connecting to the WiFi network.
 

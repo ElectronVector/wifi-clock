@@ -1,54 +1,44 @@
-#include <stdio.h>
-#include <time.h>
-
-#include "network.h"
+#include "clock.h"
+#include "display.h"
 #include "network_time.h"
+#include "wifi.h"
 #include "zephyr/kernel.h"
 #include "zephyr/logging/log.h"
+#include <zephyr/zbus/zbus.h>
 
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
-static void timer_handler(struct k_timer *dummy)
-{
-	struct timespec ts;
-	int err = clock_gettime(CLOCK_REALTIME, &ts);
-	if (!err) {
-		struct tm *tm_struct;
-		char time_str[64];
-		time_t now = ts.tv_sec;
-
-		tm_struct = gmtime(&now);
-		if (tm_struct) {
-			strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", tm_struct);
-			LOG_INF("%s.%03d UTC", time_str, (int)(ts.tv_nsec / 1000000));
-		} else {
-			LOG_ERR("Failed to convert time");
-		}
-	} else {
-		LOG_ERR("Failed to get time: %d", err);
-	}
-}
-
-K_TIMER_DEFINE(one_second_timer, timer_handler, NULL);
+ZBUS_SUBSCRIBER_DEFINE(network_wifi_sub, 4);
 
 int main(void)
 {
-	printf("Sup?? Hello World!! %s\n", CONFIG_BOARD);
+	display_init();
+	clock_init();
+	display_show_message("Connecting WiFi");
 
 	while (1) {
-		uint32_t events = k_event_wait(&network_events, NETWORK_EVENT_CONNECTED | NETWORK_EVENT_DISCONNECTED,
-					      false, K_FOREVER);
+		const struct zbus_channel *chan;
+		struct wifi_event_msg msg;
 
-		if (events & NETWORK_EVENT_CONNECTED) {
-			LOG_INF("Main thread: Network connected");
-			uint32_t offset_ms = network_time_get_and_set();
-			k_timer_start(&one_second_timer, K_MSEC(offset_ms), K_SECONDS(1));
-			k_event_clear(&network_events, NETWORK_EVENT_CONNECTED);
+		if (zbus_sub_wait(&network_wifi_sub, &chan, K_FOREVER) != 0) {
+			continue;
 		}
 
-		if (events & NETWORK_EVENT_DISCONNECTED) {
+		if (zbus_chan_read(chan, &msg, K_MSEC(100)) != 0) {
+			continue;
+		}
+
+		if (msg.events & WIFI_EVENT_IP_ACQUIRED) {
+			LOG_INF("Main thread: IP acquired");
+			display_show_message("WiFi connected");
+			uint32_t offset_ms = network_time_get_and_set();
+			clock_start(offset_ms);
+		}
+
+		if (msg.events & WIFI_EVENT_DISCONNECTED) {
 			LOG_INF("Main thread: Network disconnected");
-			k_event_clear(&network_events, NETWORK_EVENT_DISCONNECTED);
+			clock_stop();
+			display_show_message("WiFi disconnect");
 		}
 	}
 

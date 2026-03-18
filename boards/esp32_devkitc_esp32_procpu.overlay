@@ -1,0 +1,59 @@
+
+/ {
+	aliases {
+		led0 = &led0;
+		/* sw0 = &button0; */
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led0: led_0 {
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+			label = "LED";
+		};
+	};
+
+	wifi {
+		status = "okay";
+	};
+
+	lcd_char_display: hd44780 {
+		compatible = "hit,hd44780";
+		status = "okay";
+
+		mode = <4>;
+
+		boot-delay-ms = <250>;
+		enable-line-rise-delay-ns = <100>;
+		enable-line-fall-delay-ns = <100>;
+
+		/* Display dimensions */
+		columns = <16>;
+		rows = <2>;
+
+		/* Control pins */
+		register-select-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;  /* RS */
+		enable-gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;           /* E */
+		/*read-write-gpios = <&gpio0 32 GPIO_ACTIVE_HIGH>;*/           /* RW */
+
+		/* Data bus - 4-bit mode uses D4-D7 */
+		data-bus-gpios = <0>,  /* D0 */
+						 <0>,  /* D1 */
+						 <0>,  /* D2 */
+						 <0>,  /* D3 */
+						 <&gpio0 27 GPIO_ACTIVE_HIGH>,  /* D4 */
+						 <&gpio0 26 GPIO_ACTIVE_HIGH>,  /* D5 */
+						 <&gpio0 25 GPIO_ACTIVE_HIGH>,  /* D6 */
+						 <&gpio0 12 GPIO_ACTIVE_HIGH>;  /* D7 */
+	};
+
+	/* Optional: Button configuration
+	buttons {
+		compatible = "gpio-keys";
+		button0: button_0 {
+			gpios = <&gpio0 0 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "User button";
+		};
+	};
+	*/
+};

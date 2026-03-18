@@ -10,56 +10,65 @@
 #include "zephyr/net/wifi_mgmt.h"
 #include "zephyr/sys/atomic.h"
 #include "zephyr/kernel.h"
+#include <zephyr/zbus/zbus.h>
 
 LOG_MODULE_REGISTER(wifi, CONFIG_LOG_DEFAULT_LEVEL);
 
 #define WIFI_IFACE_NAME_MAX 32
 
-#ifdef CONFIG_WIFI
-K_EVENT_DEFINE(wifi_events);
+ZBUS_CHAN_DEFINE(wifi_event_chan, struct wifi_event_msg, NULL, NULL, ZBUS_OBSERVERS(network_wifi_sub),
+		 ZBUS_MSG_INIT(.events = 0));
 
 static struct net_mgmt_event_callback wifi_cb;
 static struct net_mgmt_event_callback wifi_disconnect_cb;
 static atomic_t wifi_connected = ATOMIC_INIT(0);
 
+static void publish_wifi_event(uint32_t events)
+{
+	const struct wifi_event_msg msg = {
+		.events = events,
+	};
+	int ret = zbus_chan_pub(&wifi_event_chan, &msg, K_NO_WAIT);
+
+	if (ret) {
+		LOG_ERR("Failed to publish Wi-Fi event 0x%08x: %d", events, ret);
+	}
+}
+
+#ifdef CONFIG_WIFI
 static void wifi_mgmt_event_handler(struct net_mgmt_event_callback *cb,
-                                   uint32_t mgmt_event,
+                                   uint64_t mgmt_event,
                                    struct net_if *iface)
 {
-    if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT) {
-        struct wifi_status *status = (struct wifi_status *)cb->info;
-        if (status && status->status == 0) {
-            atomic_set(&wifi_connected, 1);
-            k_event_set(&wifi_events, WIFI_EVENT_CONNECTED);
-            LOG_INF("Wi-Fi connected event received");
-        } else {
-            LOG_ERR("Wi-Fi connect failed, status: %d", status ? status->status : -1);
-        }
-    } else if (mgmt_event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
-        atomic_set(&wifi_connected, 0);
-        k_event_set(&wifi_events, WIFI_EVENT_DISCONNECTED);
-        LOG_INF("Wi-Fi disconnected event received");
-    }
+	    if (mgmt_event == NET_EVENT_WIFI_CONNECT_RESULT) {
+	        struct wifi_status *status = (struct wifi_status *)cb->info;
+	        if (status && status->status == 0) {
+	            atomic_set(&wifi_connected, 1);
+	            publish_wifi_event(WIFI_EVENT_CONNECTED);
+	            LOG_INF("Wi-Fi connected event received");
+	        } else {
+	            LOG_ERR("Wi-Fi connect failed, status: %d", status ? status->status : -1);
+	        }
+	    } else if (mgmt_event == NET_EVENT_WIFI_DISCONNECT_RESULT) {
+	        if (atomic_cas(&wifi_connected, 1, 0)) {
+	            publish_wifi_event(WIFI_EVENT_DISCONNECTED);
+	            LOG_INF("Wi-Fi disconnected event received");
+	        } else {
+	            LOG_DBG("Ignoring disconnect event before initial connect");
+	        }
+	    }
 }
-#else
-struct k_event wifi_events;
-static int wifi_events_init(void)
-{
-	k_event_init(&wifi_events);
-	return 0;
-}
-SYS_INIT(wifi_events_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 #endif
 
 static struct net_mgmt_event_callback dns_cb;
 
 static void dns_mgmt_event_handler(struct net_mgmt_event_callback *cb,
-                                   uint32_t mgmt_event,
+                                   uint64_t mgmt_event,
                                    struct net_if *iface)
 {
     if (mgmt_event == NET_EVENT_DNS_SERVER_ADD) {
         LOG_INF("DNS server added event received");
-        k_event_set(&wifi_events, WIFI_EVENT_DNS_CONFIGURED);
+        publish_wifi_event(WIFI_EVENT_DNS_CONFIGURED);
     }
 }
 
@@ -173,7 +182,7 @@ int wifi_connect()
 {
 	if (!wifi_credentials_configured()) {
 		LOG_ERR("Wi-Fi credentials not configured (CONFIG_WIFI_SSID / CONFIG_WIFI_PASSPHRASE)");
-		k_event_set(&wifi_events, WIFI_EVENT_DISCONNECTED);
+		publish_wifi_event(WIFI_EVENT_DISCONNECTED);
 		return -1;
 	}
 
@@ -215,7 +224,7 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 		ret = wifi_connect();
 		if (ret == 0) {
 			LOG_INF("Wi-Fi connected successfully");
-			k_event_set(&wifi_events, WIFI_EVENT_IP_ACQUIRED);
+			publish_wifi_event(WIFI_EVENT_IP_ACQUIRED);
 			break;
 		}
 
@@ -224,4 +233,4 @@ static void wifi_thread_fn(void *arg1, void *arg2, void *arg3)
 	}
 }
 
-K_THREAD_DEFINE(wifi_thread, 2048, wifi_thread_fn, NULL, NULL, NULL, 7, 0, 0);
+K_THREAD_DEFINE(wifi_thread, 4096, wifi_thread_fn, NULL, NULL, NULL, 7, 0, 0);
